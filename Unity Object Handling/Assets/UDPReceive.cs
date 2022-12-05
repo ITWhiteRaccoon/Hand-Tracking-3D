@@ -7,7 +7,6 @@ using System.Threading;
 
 public class UDPReceive : MonoBehaviour
 {
-
     Thread receiveThread;
     UdpClient client; 
     public int port = 5052;
@@ -18,22 +17,18 @@ public class UDPReceive : MonoBehaviour
 
     public void Start()
     {
-
         receiveThread = new Thread(
             new ThreadStart(ReceiveData));
         receiveThread.IsBackground = true;
         receiveThread.Start();
     }
 
-
     // receive thread
     private void ReceiveData()
     {
-
         client = new UdpClient(port);
         while (startReceiving)
         {
-
             try
             {
                 IPEndPoint anyIP = new IPEndPoint(IPAddress.Any, 0);
