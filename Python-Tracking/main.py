@@ -1,8 +1,24 @@
-from cvzone.HandTrackingModule import HandDetector
-from google.protobuf.json_format import MessageToDict
+import socket
+
 import cv2
 import mediapipe as mp
-import socket
+from google.protobuf.json_format import MessageToDict
+
+
+def float_to_str(f):
+    float_string = repr(f)
+    if 'e' in float_string:  # detect scientific notation
+        digits, exp = float_string.split('e')
+        digits = digits.replace('.', '').replace('-', '')
+        exp = int(exp)
+        zero_padding = '0' * (abs(int(exp)) - 1)  # minus 1 for decimal point in the sci notation
+        sign = '-' if f < 0 else ''
+        if exp > 0:
+            float_string = '{}{}{}.0'.format(sign, digits, zero_padding)
+        else:
+            float_string = '{}0.{}{}'.format(sign, zero_padding, digits)
+    return float_string
+
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -37,11 +53,24 @@ with mp_hands.Hands(
             for i, handedness_raw in enumerate(results.multi_handedness):
                 handedness = MessageToDict(handedness_raw.classification[0])
                 if handedness['label'] == 'Left':
-                    handLeft = results.multi_hand_landmarks[i]
+                    for landmark in results.multi_hand_landmarks[i].landmark:
+                        handLeft.append(
+                            float_to_str(landmark.x * imgWidth) + ',' +
+                            float_to_str(landmark.y * imgHeight) + ',' +
+                            float_to_str(landmark.z * imgWidth)
+                        )
                 if handedness['label'] == 'Right':
-                    handRight = results.multi_hand_landmarks[i]
-            data = [handLeft, handRight]
-            sock.sendto(str.encode(str(data)), serverAddressPort)
+                    for landmark in results.multi_hand_landmarks[i].landmark:
+                        handRight.append(
+                            float_to_str(landmark.x * imgWidth) + ',' +
+                            float_to_str(landmark.y * imgHeight) + ',' +
+                            float_to_str(landmark.z * imgWidth)
+                        )
+            handLeft = ' ' if len(handLeft) == 0 else '/'.join(handLeft)
+            handRight = ' ' if len(handRight) == 0 else '/'.join(handRight)
+            strData = str.encode(handLeft + ';' + handRight)
+            sock.sendto(strData, serverAddressPort)
+            print(strData)
             for hand_landmarks in results.multi_hand_landmarks:
                 mp_drawing.draw_landmarks(
                     image,
